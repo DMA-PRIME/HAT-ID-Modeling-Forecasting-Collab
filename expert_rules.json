@@ -1,0 +1,8 @@
+[
+  {
+    "id": "better-data",
+    "always": true,
+    "instruction": "Always recommend getting better data in addition to any other recommendations.",
+    "recommendation": "Improve the data before making major model changes by checking its quality, completeness, representativeness, and timeliness."
+  }
+]

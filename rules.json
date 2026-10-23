@@ -1,0 +1,20 @@
+[
+  {
+    "id": "high-mae",
+    "metric": "mae",
+    "operator": ">",
+    "threshold": 12,
+    "severity": "review",
+    "reason": "Mean absolute error is above the initial review threshold.",
+    "action": "Review seasonality, transformations, and alternative model settings."
+  },
+  {
+    "id": "high-rmse",
+    "metric": "rmse",
+    "operator": ">",
+    "threshold": 18,
+    "severity": "review",
+    "reason": "RMSE indicates large forecast misses.",
+    "action": "Inspect the largest errors and check for unusual admissions spikes."
+  }
+]
