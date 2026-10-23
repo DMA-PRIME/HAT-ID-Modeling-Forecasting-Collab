@@ -5,6 +5,11 @@ cd "$project_dir"
 
 mode="${1:-docker}"
 
+# `stdio` is used by Copilot to start the MCP as a local child process.
+if [[ "$mode" == "stdio" ]]; then
+  exec python3 "$project_dir/mcp_server.py"
+fi
+
 # `server` is useful for local development; the default starts the full bundle.
 if [[ "$mode" == "server" ]]; then
   exec python3 mcp_server.py --http

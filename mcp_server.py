@@ -78,6 +78,60 @@ def evaluate_model(arguments):
     return {"evaluation_file": write_json(output_file, evaluation), **evaluation}
 
 
+def evaluate_complex_model(arguments):
+    """MCP tool: run the external forecastEvalReport evaluation pipeline."""
+    # This stays a separate tool because it needs richer forecast formats and
+    # completed options/crosswalk files, unlike the tiny CSV evaluator above.
+    forecast_file = path_arg(arguments, "forecast_file")
+    truth_file = path_arg(arguments, "truth_file")
+    package_dir = path_arg(arguments, "package_dir")
+    options_file = path_arg(arguments, "options_file")
+    if not package_dir.is_dir() or not (package_dir / "DESCRIPTION").exists():
+        raise ValueError("package_dir must point to the forecastEvalReport source directory")
+    adapter_file = Path(__file__).with_name("forecast_eval_adapter.R").resolve()
+    if not adapter_file.exists():
+        raise RuntimeError("forecast_eval_adapter.R is missing from the project")
+    output_dir = Path(arguments.get("output_dir", "output/complex_review")).expanduser().resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    period = arguments.get("period", "realtime").lower()
+    if period not in {"realtime", "testing"}:
+        raise ValueError("period must be realtime or testing")
+    evaluation_model = arguments.get("evaluation_model_file", "")
+    crosswalk = arguments.get("crosswalk_file", "")
+    if evaluation_model:
+        evaluation_model = str(path_arg(arguments, "evaluation_model_file"))
+    if crosswalk:
+        crosswalk = str(path_arg(arguments, "crosswalk_file"))
+    command = [
+        "Rscript",
+        str(adapter_file),
+        str(package_dir),
+        str(options_file),
+        str(forecast_file),
+        str(truth_file),
+        str(output_dir),
+        period,
+        evaluation_model,
+        crosswalk,
+    ]
+    timeout = int(arguments.get("timeout_seconds", 900))
+    completed = subprocess.run(command, capture_output=True, text=True, timeout=timeout)
+    if completed.returncode != 0:
+        detail = completed.stderr.strip() or completed.stdout.strip() or "The complex evaluation failed"
+        raise RuntimeError(detail[-4000:])
+    result_file = output_dir / "adapter_result.json"
+    if not result_file.exists():
+        raise RuntimeError("The complex evaluator finished without creating adapter_result.json")
+    result = json.loads(result_file.read_text(encoding="utf-8"))
+    result["adapter_result_file"] = str(result_file)
+    result["stdout"] = completed.stdout[-2000:]
+    result["stderr"] = completed.stderr[-2000:]
+    result["evaluation_file"] = result.get("paths", {}).get("json")
+    result["results_file"] = result.get("paths", {}).get("results")
+    result["summary_file"] = result.get("paths", {}).get("ai_form")
+    return result
+
+
 def review_model_code(arguments):
     """MCP tool: scan source text for a few obvious reproducibility and safety concerns."""
     # This is a small transparent scanner, not a replacement for human review.
@@ -227,10 +281,11 @@ TOOLS = [
     # These schemas let an MCP client discover and call each capability separately.
     {"name": "run_model", "description": "Run an R model script against a data CSV.", "inputSchema": {"type": "object", "properties": {"data_file": {"type": "string"}, "model_file": {"type": "string"}, "output_dir": {"type": "string"}}, "required": ["data_file", "model_file"]}},
     {"name": "evaluate_model", "description": "Calculate performance metrics from input data and a forecast CSV.", "inputSchema": {"type": "object", "properties": {"data_file": {"type": "string"}, "forecast_file": {"type": "string"}, "output_file": {"type": "string"}}, "required": ["data_file", "forecast_file"]}},
+    {"name": "evaluate_complex_model", "description": "Run the external forecastEvalReport evaluation method for richer forecast files.", "inputSchema": {"type": "object", "properties": {"forecast_file": {"type": "string", "description": "Submitted forecast CSV, such as a FluSight file."}, "truth_file": {"type": "string", "description": "Observed truth CSV."}, "package_dir": {"type": "string", "description": "External forecastEvalReport source directory."}, "options_file": {"type": "string", "description": "Completed report_options.R file."}, "evaluation_model_file": {"type": "string", "description": "Optional historical evaluation forecast CSV for testing mode."}, "crosswalk_file": {"type": "string", "description": "Optional completed variables crosswalk CSV."}, "period": {"type": "string", "enum": ["realtime", "testing"], "default": "realtime"}, "output_dir": {"type": "string"}, "timeout_seconds": {"type": "integer", "default": 900}}, "required": ["forecast_file", "truth_file", "package_dir", "options_file"]}},
     {"name": "review_model_code", "description": "Scan model source code for basic reproducibility and safety findings.", "inputSchema": {"type": "object", "properties": {"model_file": {"type": "string"}, "output_file": {"type": "string"}}, "required": ["model_file"]}},
     {"name": "generate_recommendations", "description": "Use the local Ollama model to combine performance, code-review, and expert-rule evidence.", "inputSchema": {"type": "object", "properties": {"evaluation_file": {"type": "string"}, "code_review_file": {"type": "string"}, "rules_file": {"type": "string"}, "model": {"type": "string"}, "output_file": {"type": "string"}}, "required": ["evaluation_file", "code_review_file"]}},
 ]
-FUNCTIONS = {"run_model": run_model, "evaluate_model": evaluate_model, "review_model_code": review_model_code, "generate_recommendations": generate_recommendations}
+FUNCTIONS = {"run_model": run_model, "evaluate_model": evaluate_model, "evaluate_complex_model": evaluate_complex_model, "review_model_code": review_model_code, "generate_recommendations": generate_recommendations}
 
 
 def rpc_response(request_id, result=None, error=None):
