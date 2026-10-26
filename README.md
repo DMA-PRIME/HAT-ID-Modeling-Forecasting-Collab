@@ -1,3 +1,8 @@
+![Status: Beta](https://img.shields.io/badge/status-beta-orange)
+
+[!WARNING]
+🧪 **Beta:** This toolkit is under active development. Features, file formats, and outputs may change without notice, and results should be independently verified before being relied on for decisions.
+
 # Overview
 
 This repository is a collaboration between two Clemson University centers: the Center for Public Health Modeling and Response and the Center for Human-AI Interaction, Collaboration, and Teaming (CU-CHAI). It is a small, local-first toolkit for validating and reviewing forecasting models. You submit a time series (a CSV with date and value columns) and an R model script. The toolkit runs the model, scores its forecasts against observed values (MAE and RMSE), scans the R source for common reproducibility and safety concerns, and asks a locally hosted LLM through Ollama to suggest improvements. Those suggestions are informed by editable evaluation thresholds (rules.json) and expert guidance (expert_rules.json). You can use it in three ways: through a simple web form, as a persistent MCP server whose tools work with agents like VS Code Copilot, or as a lightweight standard-library Python workflow that benchmarks against a naive last-value baseline. Everything runs on your machine through Docker, and nothing is applied automatically. Every recommendation is marked pending until a human reviews and approves it.
