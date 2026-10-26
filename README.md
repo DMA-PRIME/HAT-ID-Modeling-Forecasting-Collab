@@ -1,7 +1,7 @@
 ![Status: Beta](https://img.shields.io/badge/status-beta-orange)
 
-[!WARNING]
-🧪 **Beta:** This toolkit is under active development. Features, file formats, and outputs may change without notice, and results should be independently verified before being relied on for decisions.
+> [!WARNING]
+> 🧪 **Beta:** This toolkit is under active development. Features, file formats, and outputs may change without notice, and results should be independently verified before being relied on for decisions.
 
 # Overview
 
